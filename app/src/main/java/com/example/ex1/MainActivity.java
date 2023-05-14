@@ -183,9 +183,13 @@ public class MainActivity extends AppCompatActivity implements ObstacleListener 
 
     @Override
     public void ObstacleMoved(Obstacle obs) {
-        // todo: if object position left the screen
+        // if object position left the screen
         // 1. remove from gamemanager
         // 2. remove from map
+        // 3. update score
+
+        // updates score and lives ui counters
+        refreshUI();
 
         int layh = main_LAY_main.getHeight();
 
