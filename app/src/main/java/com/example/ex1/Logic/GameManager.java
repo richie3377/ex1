@@ -1,104 +1,57 @@
 package com.example.ex1.Logic;
 
-import android.content.Context;
-import android.graphics.Rect;
-import android.os.Build;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.example.ex1.Models.Driver;
 import com.example.ex1.Models.MyTimer;
 import com.example.ex1.Models.Obstacle;
 import com.example.ex1.Models.ObstacleListener;
-import com.example.ex1.Models.Position;
 import com.example.ex1.Models.TimerCallback;
-import com.example.ex1.Models.laneEnum;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class GameManager
 {
     private final int PER_SECOND_SCORE = 2;
 
-    private double speedx;
-    private double speedy;
-
     private boolean isStarted;
 
-    private static final ReentrantLock obstacleListLock = new ReentrantLock ();
-    private final Position leftLane = new Position(10, 10);
-    private final Position midLane = new Position(400, 10);
-    private final Position righttLane = new Position(800, 10);
+    private final ArrayList<ObstacleListener> obstacleListeners;
 
-    private final Map<laneEnum, Position> lanes = Map.of(
-            laneEnum.right, righttLane,
-            laneEnum.middle, midLane,
-            laneEnum.left, leftLane
-    );
-
-
-
-    private ArrayList<ObstacleListener> obstacleListeners;
-
+    private int speedObstacle;
 
     private int obstacleImageResource;
 
     private int score;
     private int deaths;
-    private int initial_lifes;
+    private final int initial_lifes;
 
     private MyTimer timerAddBlock;
     private MyTimer timerMoveBlock;
 
-    private ArrayList<Obstacle> obstacles;
-    private Driver driver;
+    private final ArrayList<Obstacle> obstacles;
+    private final Driver driver;
+    private final int lanesHorizontal;
+    private final int lanesVertical;
+    private final int verticalLanesCapForColission;
 
-    public double getSpeedx() {
-        return speedx;
+    public int getspeedObstacle() {
+        return speedObstacle;
     }
 
-    public GameManager setSpeedx(double speedx) {
-        this.speedx = speedx;
-        return this;
-    }
+    public GameManager(int lifes, int lanesHorizontal, int lanesVertical,
+                       int verticalLanesCapForColission) {
+        this.initial_lifes = lifes;
+        this.lanesHorizontal = lanesHorizontal;
+        this.lanesVertical = lanesVertical;
+        this.verticalLanesCapForColission = verticalLanesCapForColission;
 
-    public double getSpeedy() {
-        return speedy;
-    }
-
-    public GameManager setSpeedy(double speedy) {
-        this.speedy = speedy;
-        return this;
-    }
-
-    public int getObstacleImageResource() {
-        return obstacleImageResource;
-    }
-
-    public GameManager setObstacleImageResource(int obstacleImageResource) {
-        this.obstacleImageResource = obstacleImageResource;
-        return this;
-    }
-
-    public GameManager setDriverPos(Position driverpos)
-    {
-        this.driver.setLane(laneEnum.middle).setPosition(driverpos);
-        return this;
-    }
-    public GameManager(int life) {
-        this.initial_lifes = life;
         this.score = 0;
         this.deaths = 0;
         this.isStarted = false;
-        this.driver = new Driver();
+        this.driver = (Driver) new Driver().setHorLane((int) Math.floor(this.lanesHorizontal/2.0)).
+                setVerLane(this.lanesVertical-1);
         TimerCallback callback1 = new TimerCallback() {
             @Override
             public void OnTick(long milisUntilFinished) {
@@ -134,56 +87,41 @@ public class GameManager
 
     public void moveDriverRight()
     {
-        if (driver.getLane() == laneEnum.right)
+        int hlane = driver.getHorizontalLane();
+        if (hlane + 1 == this.lanesHorizontal)
             return;
-        else if (driver.getLane() == laneEnum.left)
-            moveDriver(laneEnum.middle);
-        else if (driver.getLane() == laneEnum.middle)
-            moveDriver(laneEnum.right);
+        hlane += 1;
+        this.driver.setHorLane(hlane);
+        for (ObstacleListener lis: this.obstacleListeners)
+            lis.driverMoved(hlane);
     }
     public void moveDriverLeft()
     {
-        if (driver.getLane() == laneEnum.left)
+        int hlane = driver.getHorizontalLane();
+        if (hlane == 0)
             return;
-        else if (driver.getLane() == laneEnum.middle)
-            moveDriver(laneEnum.left);
-        else if (driver.getLane() == laneEnum.right)
-            moveDriver(laneEnum.middle);
-    }
-    private void moveDriver(laneEnum lane)
-    {
-        driver.setPosition(new Position(lanes.get(lane).getTopleftx(),
-                driver.getPosition().getToplefty()));
-        driver.setLane(lane);
-        for (ObstacleListener lis:
-                this.obstacleListeners) {
-            lis.driverMoved(driver.getPosition());
-        }
-
+        hlane -= 1;
+        this.driver.setHorLane(hlane);
+        for (ObstacleListener lis: this.obstacleListeners)
+            lis.driverMoved(hlane);
     }
 
-    public int getScore() {
-        return score;
-    }
-
-    public int getDeaths() {
-        return deaths;
-    }
-
-    public int getInitial_lifes() {
-        return initial_lifes;
-    }
 
     public boolean isGameEnded() {
         return initial_lifes == deaths;
     }
 
-    // todo
     public void checkColision() {
         Obstacle obsHit = null;
         for (Obstacle obs: this.obstacles ) {
-            if(obs.getLane()!=driver.getLane()) continue;
-            if(Math.abs(obs.getPosition().getToplefty() - driver.getPosition().getToplefty()) < 100)
+            int obsHLane = obs.getHorizontalLane();
+            int driverHLane = driver.getHorizontalLane();
+            int obsVLane = obs.getVerticalLane();
+            int driverVLane = driver.getVerticalLane();
+
+            if(obsHLane != driverHLane) continue;
+
+            if(Math.abs(obsVLane - driverVLane) < verticalLanesCapForColission)
             {
                 obsHit = obs;
                 break;
@@ -197,10 +135,8 @@ public class GameManager
             score += PER_SECOND_SCORE;
 
         } else { // incorrect
-            // todo: move to activity. use event listener
             deaths++;
-            for (ObstacleListener lis:
-                 this.obstacleListeners) {
+            for (ObstacleListener lis: this.obstacleListeners) {
                 lis.ObstacleHit(obsHit);
             }
 
@@ -253,36 +189,33 @@ public class GameManager
 
     public void MoveBlocks(long milisUntilFinished)
     {
-        obstacleListLock.lock();
         // moving obstacle might remove them by view, if leave screen
         // so using a city list, to not change original mid loop
         ArrayList<Obstacle> copylist = new ArrayList<>(this.obstacles);
         for (Obstacle obs: copylist) {
-            obs.move(speedx, speedy);
+            obs.setVerLane(obs.getVerticalLane() + this.speedObstacle);
             obstacleListeners.forEach((el) -> el.ObstacleMoved(obs));
         }
-        obstacleListLock.unlock();
+
         checkColision();
     }
 
     public void CreateBlock(long milisUntilFinished)
     {
         Random seed = new Random();
+        int lane = seed.nextInt(this.lanesHorizontal);
 
+        /*
         ArrayList<laneEnum> keyList = new ArrayList<>(lanes.keySet());
         int ind = seed.nextInt(keyList.size());
         laneEnum randomLane = keyList.get(ind);
         Position pos = lanes.get(randomLane);
+        */
 
-        Obstacle obs = new Obstacle().setImageResource(obstacleImageResource).setPosition(
-                new Position(pos.getTopleftx(), pos.getToplefty())).
-                setLane(randomLane);
-        obstacleListLock.lock();
+        Obstacle obs = (Obstacle) new Obstacle().setHorLane(lane).setVerLane(0);
         this.obstacles.add(obs);
-        obstacleListLock.unlock();
 
         obstacleListeners.forEach((el) -> el.ObstacleCreated(obs));
-
     }
 
     public void OnTimeoutCreateBlock() {
@@ -298,4 +231,22 @@ public class GameManager
     {
         obstacleListeners.add(listener);
     }
+    // #getters
+    public int getScore() {
+        return score;
+    }
+
+    public int getDeaths() {
+        return deaths;
+    }
+
+    public int getInitial_lifes() {
+        return initial_lifes;
+    }
+
+    public GameManager setSpeedObstacle(int speed) {
+        this.speedObstacle = speed;
+        return this;
+    }
+    // #end getters
 }

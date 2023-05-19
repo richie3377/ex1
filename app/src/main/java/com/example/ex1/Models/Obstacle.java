@@ -1,50 +1,22 @@
 package com.example.ex1.Models;
 
-public class Obstacle {
-    private int imageResource;
+public class Obstacle extends GridObject {
 
-    public Position getPosition() {
-        return position;
-    }
-
-    public Obstacle setPosition(Position position) {
-        this.position = position;
-        return this;
-    }
-
-    private Position position;
-
-
-    private laneEnum lane;
+    //private int speed;
 
     public Obstacle() {
+        super();
     }
 
-    public laneEnum getLane() {
-        return lane;
+    /*
+    public int getSpeed() {
+        return speed;
     }
 
-    public Obstacle setLane(laneEnum lane) {
-        this.lane = lane;
-        return this;
+    public void setSpeed(int speed) {
+        this.speed = speed;
     }
-
-
-    public int getImageResource() {
-        return imageResource;
-    }
-
-    public void move(double offsetx, double offsety)
-    {
-        position.setTopleftx(position.getTopleftx()+offsetx);
-        position.setToplefty(position.getToplefty()+offsety);
-    }
-
-    public Obstacle setImageResource(int imageResource) {
-        this.imageResource = imageResource;
-        return this;
-    }
-
+*/
     /*
 
 

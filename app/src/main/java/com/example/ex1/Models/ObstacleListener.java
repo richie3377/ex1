@@ -5,5 +5,5 @@ public interface ObstacleListener {
     void ObstacleCreated(Obstacle obs);
     void ObstacleHit(Obstacle obs);
     void ObstacleRemoved(Obstacle obs);
-    void driverMoved(Position pos);
+    void driverMoved(int lane);
 }
